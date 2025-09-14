@@ -1,84 +1,66 @@
 #include <Arduino.h>
 
-// --------- CONFIGURACIÓN ---------
-// Descomenta SOLO UNO de los modos
-#define MODO_SERIAL
-// #define MODO_SERIAL
-// #define MODO_PULSADORES
+// Pines de pulsadores y LED
+const int pinIncremento = 4;
+const int pinDecremento = 5;
+const int pinLed = 2;
 
-// Pines para los pulsadores y LED
-const int pinIncrementa = 14;   // GPIO14 
-const int pinDecrementa = 27;   // GPIO27 
-const int pinLed = 2;           // LED integrado (GPIO2)
+int conteo = 0;
+bool ledEncendido = false;
+unsigned long tiempoEncendido = 0;
 
-// Variable de conteo
-int CONTEO = 0;
-
-// --------- FUNCIONES AUXILIARES ---------
 void imprimirConteo() {
   Serial.print("{'contador': ");
-  Serial.print(CONTEO);
+  Serial.print(conteo);
   Serial.println("}");
 }
 
-
 void setup() {
-  Serial.begin(115200);
-
-#ifdef MODO_PULSADORES
-  pinMode(pinIncrementa, INPUT_PULLUP); // Pulsador con resistencia interna
-  pinMode(pinDecrementa, INPUT_PULLUP);
-#endif
-
+  pinMode(pinIncremento, INPUT_PULLUP);
+  pinMode(pinDecremento, INPUT_PULLUP);
   pinMode(pinLed, OUTPUT);
-  digitalWrite(pinLed, LOW);
 
-  Serial.println("Sistema iniciado...");
+  Serial.begin(115200);
+  Serial.println("Contador iniciado...");
 }
 
 void loop() {
-#ifdef MODO_PULSADORES
-  // ---- LECTURA DE PULSADORES ----
-  if (digitalRead(pinIncrementa) == LOW) {   // Pulsador presionado
-    if (CONTEO < 20) {
-      CONTEO++;
-    }
+  // Leer pulsadores físicos
+  if (digitalRead(pinIncremento) == LOW) {
+    if (conteo < 20) conteo++;
     imprimirConteo();
-    delay(250); // Anti-rebote
+    delay(300); // antirrebote
   }
 
-  if (digitalRead(pinDecrementa) == LOW) {
-    if (CONTEO > 0) {
-      CONTEO--;
-    }
+  if (digitalRead(pinDecremento) == LOW) {
+    if (conteo > 0) conteo--;
     imprimirConteo();
-    delay(250); // Anti-rebote
+    delay(300); // antirrebote
   }
-#endif
 
-#ifdef MODO_SERIAL
-  // ---- LECTURA DESDE TECLADO SERIAL ----
-  if (Serial.available() > 0) {
-    char tecla = Serial.read();
-    if (tecla == '+') {
-      if (CONTEO < 20) {
-        CONTEO++;
-      }
+  // Leer comandos desde el monitor serial
+  if (Serial.available()) {
+    char comando = Serial.read();
+    if (comando == '+') {
+      if (conteo < 20) conteo++;
       imprimirConteo();
-    } else if (tecla == '-') {
-      if (CONTEO > 0) {
-        CONTEO--;
-      }
+    } else if (comando == '-') {
+      if (conteo > 0) conteo--;
       imprimirConteo();
     }
   }
-#endif
 
-  // ---- CONTROL DEL LED ----
-  if (CONTEO == 10) {
+  // Si llega a 10 → encender LED 4s sin bloquear
+  if (conteo == 10 && !ledEncendido) {
     digitalWrite(pinLed, HIGH);
-    delay(4000); // LED encendido por 4 segundos
+    ledEncendido = true;
+    tiempoEncendido = millis(); // guardar el momento en que se encendió
+  }
+
+  // Verificar si ya pasaron los 4s
+  if (ledEncendido && millis() - tiempoEncendido >= 4000) {
     digitalWrite(pinLed, LOW);
+    ledEncendido = false;
   }
 }
 
