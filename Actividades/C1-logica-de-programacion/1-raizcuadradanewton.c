@@ -9,10 +9,11 @@ Integrantes:
 Compilador usado:
 OnlineGDB
 */
+
 #include <stdio.h>
 
 // valor absoluto sin usar math.h
-double absd(double v) { return (v <  0) ? -v : v; }
+double absd(double v) { return (v < 0) ? -v : v; }
 
 // Función: raíz cuadrada por Newton
 double raizCuadradaNewton(int numero) {
